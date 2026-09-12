@@ -39,6 +39,10 @@ Este es un bot de automatización para WhatsApp diseñado para enviar mensajes p
 
 Una vez escaneado el QR y guardada la sesión en `.wwebjs_auth`, puedes ejecutar cualquiera de los scripts autónomos o el servidor:
 
+- **Para Ivon (Sensual & Erótico Elegante - 25 Mensajes):**
+  ```bash
+  node envio_ivon.js
+  ```
 - **Para Elia (Modo Conquista - 25 Poemas Inteligentes & Coquetos):**
   ```bash
   node envio_elia.js
