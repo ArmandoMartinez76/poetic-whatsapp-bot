@@ -28,13 +28,20 @@ const client = new Client({
 
 client.on('qr', (qr) => {
     lastQr = qr;
-    log('QR RECEIVED. ESCANEA ESTE CÓDIGO EN: http://localhost:3000/qr');
+    log('QR RECEIVED. ESCANEA ESTE CÓDIGO EN: http://localhost:3000/qr o abre qr.html');
     qrcodeTerminal.generate(qr, {small: true});
+    QRCode.toDataURL(qr, (err, url) => {
+        if (!err) {
+            const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>QR WhatsApp</title></head><body style="text-align:center; font-family: sans-serif; margin-top: 50px;"><h1>Escanea este QR con WhatsApp</h1><img src="${url}" style="border: 10px solid white; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: 320px;" /><p style="font-size:18px;color:#555;">Abre WhatsApp en tu teléfono &gt; Dispositivos vinculados &gt; Vincular dispositivo</p></body></html>`;
+            fs.writeFileSync('qr.html', html);
+            log('Archivo qr.html guardado en el disco para visualización directa.');
+        }
+    });
 });
 
 client.on('ready', () => {
     lastQr = null;
-    log('¡Conexión exitosa! El client de WhatsApp está listo.');
+    log('¡Conexión exitosa! El cliente de WhatsApp está listo.');
 });
 
 client.on('message', message => {
@@ -88,7 +95,6 @@ app.post('/send-message', async (req, res) => {
     }
 
     try {
-        // Formatear el número (eliminar '+' y asegurar que termine en @c.us)
         let formattedNumber = number.replace('+', '').replace(' ', '');
         if (!formattedNumber.endsWith('@c.us')) {
             formattedNumber = `${formattedNumber}@c.us`;
@@ -103,6 +109,6 @@ app.post('/send-message', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    log(`API escuchando en http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+    log(`API escuchando en http://localhost:${port} y http://127.0.0.1:${port}`);
 });

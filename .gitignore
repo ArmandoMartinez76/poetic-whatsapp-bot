@@ -3,6 +3,7 @@ node_modules/
 .wwebjs_cache/
 *.log
 *.png
+qr.html
 .env
 .vscode/
 package-lock.json
