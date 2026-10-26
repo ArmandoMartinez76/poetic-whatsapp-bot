@@ -11,7 +11,8 @@
     "send:elia": "node envio_elia.js",
     "send:ivon": "node envio_ivon.js",
     "send:lidia": "node envio_lidia.js",
-    "send:rosamaria": "node envio_rosamaria.js"
+    "send:rosamaria": "node envio_rosamaria.js",
+    "send:elizabeth": "node envio_elizabeth.js"
   },
   "engines": {
     "node": ">=20.0.0",
