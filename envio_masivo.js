@@ -1,3 +1,4 @@
+require('dotenv').config();
 const axios = require('axios');
 const fs = require('fs');
 
@@ -104,8 +105,9 @@ const mensajes = [
     "Mi corazón está atado a ti con un amor que nunca terminará."
 ];
 
-const targetNumber = '5217333432538';
-const apiUrl = 'http://localhost:3000/send-message';
+const targetNumber = process.env.TARGET_NUMBER || '5217333432538';
+const apiUrl = process.env.API_URL || 'http://localhost:3000/send-message';
+const apiKey = process.env.API_KEY || null;
 
 // Función para registrar logs inmediatamente
 function logMessage(msg) {
@@ -124,7 +126,7 @@ async function enviarMensajes() {
             const response = await axios.post(apiUrl, {
                 number: targetNumber,
                 message: msg
-            });
+            }, { headers: apiKey ? { 'x-api-key': apiKey } : {} });
             logMessage(`EXITOSO: ${msg.substring(0, 30)}... (Respuesta: ${response.status})`);
         } catch (error) {
             logMessage(`ERROR enviando mensaje ${i + 1}: ${error.message}`);

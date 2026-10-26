@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
 const QRCode = require('qrcode');
@@ -5,7 +6,9 @@ const express = require('express');
 const fs = require('fs');
 
 const app = express();
-const port = 3000;
+const port = parseInt(process.env.PORT, 10) || 3000;
+const host = process.env.HOST || '127.0.0.1';
+const apiKey = process.env.API_KEY || null;
 
 app.use(express.json());
 
@@ -22,14 +25,23 @@ const log = (msg) => {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu'
+        ]
     }
 });
 
 client.on('qr', (qr) => {
     lastQr = qr;
-    log('QR RECEIVED. ESCANEA ESTE CÓDIGO EN: http://localhost:3000/qr o abre qr.html');
-    qrcodeTerminal.generate(qr, {small: true});
+    log(`QR RECEIVED. ESCANEA ESTE CÓDIGO EN: http://${host === '0.0.0.0' ? 'localhost' : host}:${port}/qr o abre qr.html`);
+    qrcodeTerminal.generate(qr, { small: true });
     QRCode.toDataURL(qr, (err, url) => {
         if (!err) {
             const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>QR WhatsApp</title></head><body style="text-align:center; font-family: sans-serif; margin-top: 50px;"><h1>Escanea este QR con WhatsApp</h1><img src="${url}" style="border: 10px solid white; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: 320px;" /><p style="font-size:18px;color:#555;">Abre WhatsApp en tu teléfono &gt; Dispositivos vinculados &gt; Vincular dispositivo</p></body></html>`;
@@ -45,9 +57,9 @@ client.on('ready', () => {
 });
 
 client.on('message', message => {
-	if(message.body === '!ping') {
-		message.reply('pong');
-	}
+    if (message.body === '!ping') {
+        message.reply('pong');
+    }
 });
 
 client.initialize();
@@ -57,7 +69,7 @@ app.get('/qr', (req, res) => {
     if (!lastQr) {
         return res.send('<h1>El QR no está disponible. Quizás ya estés logueado.</h1>');
     }
-    
+
     QRCode.toDataURL(lastQr, (err, url) => {
         if (err) return res.status(500).send('Error generando el QR');
         res.send(`
@@ -83,11 +95,22 @@ app.get('/qr', (req, res) => {
 
 // Endpoint to check status
 app.get('/status', (req, res) => {
-    res.json({ ready: !lastQr && client.info });
+    res.json({ ready: !lastQr && !!client.info });
 });
 
+// Authentication middleware helper for API routes
+const checkAuth = (req, res, next) => {
+    if (apiKey) {
+        const clientKey = req.headers['x-api-key'] || req.query.apiKey;
+        if (clientKey !== apiKey) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid or missing API key.' });
+        }
+    }
+    next();
+};
+
 // Express endpoints
-app.post('/send-message', async (req, res) => {
+app.post('/send-message', checkAuth, async (req, res) => {
     const { number, message } = req.body;
 
     if (!number || !message) {
@@ -95,11 +118,14 @@ app.post('/send-message', async (req, res) => {
     }
 
     try {
-        let formattedNumber = number.replace('+', '').replace(' ', '');
-        if (!formattedNumber.endsWith('@c.us')) {
-            formattedNumber = `${formattedNumber}@c.us`;
+        // Robust phone number sanitation: strip all non-digit characters
+        let cleanedNumber = String(number).trim().replace(/\D/g, '');
+        if (!cleanedNumber || cleanedNumber.length < 8) {
+            return res.status(400).send('Invalid phone number format.');
         }
-        
+
+        const formattedNumber = `${cleanedNumber}@c.us`;
+
         await client.sendMessage(formattedNumber, message);
         log(`Mensaje enviado a ${number}`);
         res.send(`Mensaje enviado a ${number}`);
@@ -109,6 +135,21 @@ app.post('/send-message', async (req, res) => {
     }
 });
 
-app.listen(port, '0.0.0.0', () => {
-    log(`API escuchando en http://localhost:${port} y http://127.0.0.1:${port}`);
+const server = app.listen(port, host, () => {
+    log(`API escuchando en http://${host}:${port}`);
 });
+
+// Graceful shutdown handling
+const shutdown = async () => {
+    log('Cerrando servidor y sesión de WhatsApp...');
+    server.close();
+    try {
+        await client.destroy();
+    } catch (e) {
+        // Ignore error during cleanup
+    }
+    process.exit(0);
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
