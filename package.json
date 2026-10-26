@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "test": "node --test",
     "send:masivo": "node envio_masivo.js",
     "send:alejandra": "node envio_alejandra.js",
     "send:elia": "node envio_elia.js",
