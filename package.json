@@ -12,7 +12,8 @@
     "send:ivon": "node envio_ivon.js",
     "send:lidia": "node envio_lidia.js",
     "send:rosamaria": "node envio_rosamaria.js",
-    "send:elizabeth": "node envio_elizabeth.js"
+    "send:elizabeth": "node envio_elizabeth.js",
+    "send:adriana": "node envio_adriana.js"
   },
   "engines": {
     "node": ">=20.0.0",
